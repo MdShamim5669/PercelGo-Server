@@ -1,7 +1,18 @@
-const jwt = require('jsonwebtoken');
-const { getDB } = require('../../config/db');
+import { Request, Response, NextFunction } from 'express';
+import admin from '../../config/firebase';
+import { getAuth } from 'firebase-admin/auth';
+import { getDB } from '../../config/db';
 
-const verifyToken = (req, res, next) => {
+// Extend the Express Request interface to include the user property
+declare global {
+  namespace Express {
+    interface Request {
+      user?: any;
+    }
+  }
+}
+
+export const verifyToken = async (req: Request, res: Response, next: NextFunction) => {
   const token = req.headers.authorization?.split(' ')[1];
   
   if (!token) {
@@ -9,15 +20,16 @@ const verifyToken = (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // Assume the payload has at least { email, role }
+    const decodedToken = await getAuth().verifyIdToken(token);
+    req.user = decodedToken; // Firebase token payload will have email, uid, etc.
     next();
   } catch (error) {
+    console.error('Error verifying Firebase token:', error);
     return res.status(403).json({ message: 'Invalid or expired token.' });
   }
 };
 
-const verifyAdmin = async (req, res, next) => {
+export const verifyAdmin = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const db = getDB();
     
@@ -30,7 +42,7 @@ const verifyAdmin = async (req, res, next) => {
     }
 
     // Verify role directly from the database for better security
-    const user = await db.collection('users').findOne({ email: req.user.email });
+    const user = await db.collection('users').findOne({ email: req.user?.email });
     
     if (user && user.role === 'admin') {
       next();
@@ -42,7 +54,7 @@ const verifyAdmin = async (req, res, next) => {
   }
 };
 
-const verifyRider = async (req, res, next) => {
+export const verifyRider = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const db = getDB();
     
@@ -55,7 +67,7 @@ const verifyRider = async (req, res, next) => {
     }
 
     // Verify role directly from the database for better security
-    const user = await db.collection('users').findOne({ email: req.user.email });
+    const user = await db.collection('users').findOne({ email: req.user?.email });
     
     if (user && user.role === 'rider') {
       next();
@@ -66,5 +78,3 @@ const verifyRider = async (req, res, next) => {
     res.status(500).json({ message: 'Internal server error during authorization verification.' });
   }
 };
-
-module.exports = { verifyToken, verifyAdmin, verifyRider };

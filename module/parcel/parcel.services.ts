@@ -1,14 +1,19 @@
-const { getDB } = require('../../config/db');
-const { ObjectId } = require('mongodb');
-const crypto = require('crypto');
+import { getDB } from '../../config/db';
+import { ObjectId } from 'mongodb';
+import AppError from '../utils/AppError';
+import Stripe from 'stripe';
 
-const memoryStore = {
+const stripe = new Stripe(process.env.STRIPE_SECRET || '', {
+  apiVersion: '2025-01-27.acacia' as any,
+});
+
+export const memoryStore: any = {
   parcels: [],
   tracking: [],
   payments: []
 };
 
-function buildParcelRecord(parcelData) {
+function buildParcelRecord(parcelData: any) {
   const parcel = {
     ...parcelData,
     creation_date: new Date().toISOString(),
@@ -20,7 +25,7 @@ function buildParcelRecord(parcelData) {
   return parcel;
 }
 
-function calculateParcelCost(parcel) {
+function calculateParcelCost(parcel: any) {
   const type = (parcel.type || '').toLowerCase();
   const weight = Number(parcel.weight || 0);
   const sameCity = String(parcel.pickupRegion || '').toLowerCase() === String(parcel.deliveryRegion || '').toLowerCase()
@@ -37,7 +42,7 @@ function calculateParcelCost(parcel) {
   return sameCity ? 110 + (weight - 3) * 40 : 150 + (weight - 3) * 40 + 40;
 }
 
-function validateParcel(parcelData) {
+function validateParcel(parcelData: any) {
   const requiredFields = [
     'title',
     'type',
@@ -47,18 +52,15 @@ function validateParcel(parcelData) {
     'receiverName',
     'receiverRegion',
     'receiverAddress'
-    // Made senderContact, receiverContact, pickupServiceCenter, deliveryServiceCenter optional for now
   ];
 
   const missing = requiredFields.filter((field) => !parcelData[field]);
   if (missing.length) {
-    const error = new Error(`Missing required fields: ${missing.join(', ')}`);
-    error.status = 400;
-    throw error;
+    throw new AppError(400, `Missing required fields: ${missing.join(', ')}`);
   }
 }
 
-function createTrackingEntry(parcelId, status, message, extra = {}) {
+function createTrackingEntry(parcelId: string, status: string, message: string, extra: any = {}) {
   return {
     _id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
     parcelId,
@@ -69,7 +71,7 @@ function createTrackingEntry(parcelId, status, message, extra = {}) {
   };
 }
 
-async function createParcelService(parcelData) {
+export async function createParcelService(parcelData: any) {
   validateParcel(parcelData);
 
   const db = getDB();
@@ -83,12 +85,12 @@ async function createParcelService(parcelData) {
   return db.collection('parcels').insertOne(parcel);
 }
 
-async function getParcelsService(email) {
+export async function getParcelsService(email?: string) {
   const db = getDB();
 
   if (!db) {
     return email
-      ? memoryStore.parcels.filter((parcel) => parcel.senderEmail === email || parcel.senderContact === email)
+      ? memoryStore.parcels.filter((parcel: any) => parcel.senderEmail === email || parcel.senderContact === email)
       : memoryStore.parcels;
   }
 
@@ -96,25 +98,50 @@ async function getParcelsService(email) {
   return db.collection('parcels').find(query).toArray();
 }
 
-async function getParcelByIdService(id) {
+export async function getParcelByIdService(id: string) {
   const db = getDB();
 
   if (!db) {
-    return memoryStore.parcels.find((parcel) => parcel._id?.toString() === id) || null;
+    const parcel = memoryStore.parcels.find((parcel: any) => parcel._id?.toString() === id) || null;
+    if (!parcel) throw new AppError(404, 'Parcel not found');
+    return parcel;
   }
 
-  if (!ObjectId.isValid(id)) return null;
-
-  return db.collection('parcels').findOne({ _id: new ObjectId(id) });
+  const queryId: any = ObjectId.isValid(id) && String(new ObjectId(id)) === id ? new ObjectId(id) : id;
+  const parcel = await db.collection('parcels').findOne({ _id: queryId });
+  if (!parcel) throw new AppError(404, 'Parcel not found');
+  return parcel;
 }
 
-async function payParcelService(id, paymentInfo) {
+export async function createPaymentIntentService(id: string) {
+  const parcel = await getParcelByIdService(id);
+  if (!parcel) throw new AppError(404, 'Parcel not found');
+  
+  if (parcel.status === 'paid') {
+    throw new AppError(400, 'Parcel is already paid');
+  }
+
+  // Cost is calculated during creation, but let's ensure it's available
+  const amount = parcel.cost ? parcel.cost * 100 : calculateParcelCost(parcel) * 100;
+
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount,
+    currency: 'bdt',
+    metadata: {
+      parcelId: id,
+    },
+  });
+
+  return { clientSecret: paymentIntent.client_secret, amount: amount / 100 };
+}
+
+export async function payParcelService(id: string, paymentInfo: any) {
   const db = getDB();
 
   if (!db) {
-    const parcelIndex = memoryStore.parcels.findIndex((parcel) => parcel._id?.toString() === id);
+    const parcelIndex = memoryStore.parcels.findIndex((parcel: any) => parcel._id?.toString() === id);
     if (parcelIndex === -1) {
-      return { status: 404, message: 'Parcel not found' };
+      throw new AppError(404, 'Parcel not found');
     }
 
     const trackingNo = `${100000 + Math.floor(Math.random() * 900000)}`;
@@ -137,6 +164,8 @@ async function payParcelService(id, paymentInfo) {
 
     return { acknowledged: true, trackingNo, payment };
   }
+  
+  const queryId: any = ObjectId.isValid(id) && String(new ObjectId(id)) === id ? new ObjectId(id) : id;
 
   const trackingNo = `${100000 + Math.floor(Math.random() * 900000)}`;
   const payment = {
@@ -147,24 +176,29 @@ async function payParcelService(id, paymentInfo) {
   };
 
   const updateResult = await db.collection('parcels').updateOne(
-    { _id: new ObjectId(id) },
+    { _id: queryId },
     { $set: { status: 'paid', trackingNo, paymentInfo: payment } }
   );
+  
+  if (updateResult.matchedCount === 0) {
+      throw new AppError(404, 'Parcel not found');
+  }
 
   if (updateResult.modifiedCount > 0) {
+    await db.collection('payments').insertOne(payment);
     await db.collection('tracking').insertOne(createTrackingEntry(id, 'paid', 'Parcel payment received and tracking number assigned.', { trackingNo }));
   }
 
   return { acknowledged: updateResult.modifiedCount > 0, trackingNo, payment };
 }
 
-async function updateParcelStatusService(id, status, message, riderEmail) {
+export async function updateParcelStatusService(id: string, status: string, message: string, riderEmail?: string) {
   const db = getDB();
 
   if (!db) {
-    const parcelIndex = memoryStore.parcels.findIndex((parcel) => parcel._id?.toString() === id);
+    const parcelIndex = memoryStore.parcels.findIndex((parcel: any) => parcel._id?.toString() === id);
     if (parcelIndex === -1) {
-      return { status: 404, message: 'Parcel not found' };
+      throw new AppError(404, 'Parcel not found');
     }
 
     memoryStore.parcels[parcelIndex] = {
@@ -176,11 +210,17 @@ async function updateParcelStatusService(id, status, message, riderEmail) {
 
     return { acknowledged: true, modifiedCount: 1 };
   }
+  
+  const queryId: any = ObjectId.isValid(id) && String(new ObjectId(id)) === id ? new ObjectId(id) : id;
 
   const updateResult = await db.collection('parcels').updateOne(
-    { _id: new ObjectId(id) },
+    { _id: queryId },
     { $set: { status, ...(riderEmail ? { riderEmail } : {}) } }
   );
+  
+  if (updateResult.matchedCount === 0) {
+      throw new AppError(404, 'Parcel not found');
+  }
 
   if (updateResult.modifiedCount > 0) {
     await db.collection('tracking').insertOne(createTrackingEntry(id, status, message || 'Parcel status updated.', { riderEmail }));
@@ -190,25 +230,15 @@ async function updateParcelStatusService(id, status, message, riderEmail) {
 }
 
 
-async function getPaymentsService(email) {
+export async function getPaymentsService(email?: string) {
   const db = getDB();
 
   if (!db) {
     return email
-      ? memoryStore.payments.filter((payment) => payment.email === email)
+      ? memoryStore.payments.filter((payment: any) => payment.email === email)
       : memoryStore.payments;
   }
 
   const query = email ? { email } : {};
   return db.collection('payments').find(query).toArray();
 }
-
-module.exports = {
-  memoryStore,
-  createParcelService,
-  getParcelsService,
-  getParcelByIdService,
-  payParcelService,
-  updateParcelStatusService,
-  getPaymentsService
-};

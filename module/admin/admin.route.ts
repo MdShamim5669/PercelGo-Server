@@ -1,5 +1,5 @@
-const express = require('express');
-const {
+import { Router } from 'express';
+import {
   getStats,
   updateRiderStatus,
   updateUserRole,
@@ -7,10 +7,10 @@ const {
   confirmReceive,
   shipParcel,
   assignDeliveryRider
-} = require('../controllers/adminController');
-const { verifyToken, verifyAdmin } = require('../middleware/authMiddleware');
+} from './admin.controller';
+import { verifyToken, verifyAdmin } from '../middleware/authMiddleware';
 
-const router = express.Router();
+const router = Router();
 
 router.use(verifyToken, verifyAdmin);
 
@@ -22,4 +22,4 @@ router.patch('/parcels/:id/confirm-receive', confirmReceive);
 router.patch('/parcels/:id/ship', shipParcel);
 router.patch('/parcels/:id/assign-delivery', assignDeliveryRider);
 
-module.exports = router;
+export const AdminRoutes = router;

@@ -1,10 +1,11 @@
-const { getDB } = require('../../config/db');
-const { ObjectId } = require('mongodb');
-const { memoryStore } = require('./parcelServicecs');
+import { getDB } from '../../config/db';
+import { ObjectId } from 'mongodb';
+import { memoryStore } from '../parcel/parcel.services';
+import AppError from '../utils/AppError';
 
-const memoryRiderEarnings = {};
+const memoryRiderEarnings: any = {};
 
-function calculateEarning(riderEmail, parcelId, db) {
+async function calculateEarning(riderEmail: string, parcelId: string, db: any) {
   const earningRecord = {
     riderEmail,
     parcelId,
@@ -20,32 +21,32 @@ function calculateEarning(riderEmail, parcelId, db) {
   }
 }
 
-async function getPickupParcelsService(riderEmail) {
+export async function getPickupParcelsService(riderEmail: string) {
   const db = getDB();
   if (!db) {
-    return memoryStore.parcels.filter(p => p.pickupRider === riderEmail && p.status === 'ready-to-pickup');
+    return memoryStore.parcels.filter((p: any) => p.pickupRider === riderEmail && p.status === 'ready-to-pickup');
   }
   return db.collection('parcels').find({ pickupRider: riderEmail, status: 'ready-to-pickup' }).toArray();
 }
 
-async function getDeliveryParcelsService(riderEmail) {
+export async function getDeliveryParcelsService(riderEmail: string) {
   const db = getDB();
   if (!db) {
-    return memoryStore.parcels.filter(p => p.deliveryRider === riderEmail && p.status === 'ready-for-delivery');
+    return memoryStore.parcels.filter((p: any) => p.deliveryRider === riderEmail && p.status === 'ready-for-delivery');
   }
   return db.collection('parcels').find({ deliveryRider: riderEmail, status: 'ready-for-delivery' }).toArray();
 }
 
-async function confirmPickupService(parcelId, trackingNo, riderEmail) {
+export async function confirmPickupService(parcelId: string, trackingNo: string, riderEmail: string) {
   const db = getDB();
-  let parcel = null;
+  let parcel: any = null;
 
   if (!db) {
-    const idx = memoryStore.parcels.findIndex(p => p._id === parcelId && p.pickupRider === riderEmail && p.status === 'ready-to-pickup');
-    if (idx === -1) return { status: 404, message: 'Parcel not found or not assigned for pickup' };
+    const idx = memoryStore.parcels.findIndex((p: any) => p._id === parcelId && p.pickupRider === riderEmail && p.status === 'ready-to-pickup');
+    if (idx === -1) throw new AppError(404, 'Parcel not found or not assigned for pickup');
     parcel = memoryStore.parcels[idx];
     
-    if (parcel.trackingNo !== trackingNo) return { status: 400, message: 'Invalid Tracking Number' };
+    if (parcel.trackingNo !== trackingNo) throw new AppError(400, 'Invalid Tracking Number');
     
     const isSameCity = String(parcel.pickupRegion || '').toLowerCase() === String(parcel.deliveryRegion || '').toLowerCase() || 
                        String(parcel.pickupServiceCenter || '').toLowerCase() === String(parcel.deliveryServiceCenter || '').toLowerCase();
@@ -58,11 +59,11 @@ async function confirmPickupService(parcelId, trackingNo, riderEmail) {
     calculateEarning(riderEmail, parcelId, db);
     return { success: true, message: `Parcel picked up successfully. Status is now ${newStatus}.`, earning: 20 };
   } else {
-    if (!ObjectId.isValid(parcelId)) return { status: 400, message: 'Invalid parcel ID' };
+    if (!ObjectId.isValid(parcelId)) throw new AppError(400, 'Invalid parcel ID');
     parcel = await db.collection('parcels').findOne({ _id: new ObjectId(parcelId), pickupRider: riderEmail, status: 'ready-to-pickup' });
-    if (!parcel) return { status: 404, message: 'Parcel not found or not assigned for pickup' };
+    if (!parcel) throw new AppError(404, 'Parcel not found or not assigned for pickup');
 
-    if (parcel.trackingNo !== trackingNo) return { status: 400, message: 'Invalid Tracking Number' };
+    if (parcel.trackingNo !== trackingNo) throw new AppError(400, 'Invalid Tracking Number');
 
     const isSameCity = String(parcel.pickupRegion || '').toLowerCase() === String(parcel.deliveryRegion || '').toLowerCase() || 
                        String(parcel.pickupServiceCenter || '').toLowerCase() === String(parcel.deliveryServiceCenter || '').toLowerCase();
@@ -81,16 +82,16 @@ async function confirmPickupService(parcelId, trackingNo, riderEmail) {
   }
 }
 
-async function deliverParcelService(parcelId, trackingNo, riderEmail) {
+export async function deliverParcelService(parcelId: string, trackingNo: string, riderEmail: string) {
   const db = getDB();
-  let parcel = null;
+  let parcel: any = null;
 
   if (!db) {
-    const idx = memoryStore.parcels.findIndex(p => p._id === parcelId && p.deliveryRider === riderEmail && p.status === 'ready-for-delivery');
-    if (idx === -1) return { status: 404, message: 'Parcel not found or not assigned for delivery' };
+    const idx = memoryStore.parcels.findIndex((p: any) => p._id === parcelId && p.deliveryRider === riderEmail && p.status === 'ready-for-delivery');
+    if (idx === -1) throw new AppError(404, 'Parcel not found or not assigned for delivery');
     parcel = memoryStore.parcels[idx];
     
-    if (parcel.trackingNo !== trackingNo) return { status: 400, message: 'Invalid Tracking Number' };
+    if (parcel.trackingNo !== trackingNo) throw new AppError(400, 'Invalid Tracking Number');
     
     memoryStore.parcels[idx].status = 'Delivered';
     
@@ -99,11 +100,11 @@ async function deliverParcelService(parcelId, trackingNo, riderEmail) {
     calculateEarning(riderEmail, parcelId, db);
     return { success: true, message: 'Parcel delivered successfully', earning: 20 };
   } else {
-    if (!ObjectId.isValid(parcelId)) return { status: 400, message: 'Invalid parcel ID' };
+    if (!ObjectId.isValid(parcelId)) throw new AppError(400, 'Invalid parcel ID');
     parcel = await db.collection('parcels').findOne({ _id: new ObjectId(parcelId), deliveryRider: riderEmail, status: 'ready-for-delivery' });
-    if (!parcel) return { status: 404, message: 'Parcel not found or not assigned for delivery' };
+    if (!parcel) throw new AppError(404, 'Parcel not found or not assigned for delivery');
 
-    if (parcel.trackingNo !== trackingNo) return { status: 400, message: 'Invalid Tracking Number' };
+    if (parcel.trackingNo !== trackingNo) throw new AppError(400, 'Invalid Tracking Number');
 
     await db.collection('parcels').updateOne(
       { _id: new ObjectId(parcelId) },
@@ -117,24 +118,10 @@ async function deliverParcelService(parcelId, trackingNo, riderEmail) {
   }
 }
 
-async function getRiderEarningsService(riderEmail) {
+export async function getRiderEarningsService(riderEmail: string) {
   const db = getDB();
-  
   if (!db) {
-    const earnings = memoryRiderEarnings[riderEmail] || [];
-    const total = earnings.reduce((sum, e) => sum + e.earning, 0);
-    return { totalEarnings: total, deliveries: earnings.length, details: earnings };
+    return memoryRiderEarnings[riderEmail] || [];
   }
-
-  const earnings = await db.collection('earnings').find({ riderEmail }).toArray();
-  const total = earnings.reduce((sum, e) => sum + e.earning, 0);
-  return { totalEarnings: total, deliveries: earnings.length, details: earnings };
+  return db.collection('earnings').find({ riderEmail }).toArray();
 }
-
-module.exports = {
-  getPickupParcelsService,
-  getDeliveryParcelsService,
-  confirmPickupService,
-  deliverParcelService,
-  getRiderEarningsService
-};

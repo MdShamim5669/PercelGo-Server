@@ -1,14 +1,14 @@
-const express = require('express');
-const {
+import { Router } from 'express';
+import {
   getPickupParcels,
   getDeliveryParcels,
   confirmPickup,
   deliverParcel,
   getEarnings
-} = require('../controllers/riderController');
-const { verifyToken, verifyRider } = require('../middleware/authMiddleware');
+} from './rider.controller';
+import { verifyToken, verifyRider } from '../middleware/authMiddleware';
 
-const router = express.Router();
+const router = Router();
 
 router.use(verifyToken, verifyRider);
 
@@ -18,4 +18,4 @@ router.post('/parcels/:id/pickup', confirmPickup);
 router.post('/parcels/:id/deliver', deliverParcel);
 router.get('/earnings', getEarnings);
 
-module.exports = router;
+export const RiderRoutes = router;

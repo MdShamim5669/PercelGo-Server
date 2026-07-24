@@ -1,7 +1,8 @@
-const { MongoClient, ServerApiVersion } = require('mongodb');
-require('dotenv').config();
+import { MongoClient, ServerApiVersion, Db } from 'mongodb';
+import dotenv from 'dotenv';
+dotenv.config();
 
-const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/zapShiftDB';
+const uri = process.env.MONGODB_URI as string;
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -10,10 +11,10 @@ const client = new MongoClient(uri, {
   }
 });
 
-let database = null;
-let connectError = null;
+let database: Db | null = null;
+let connectError: Error | null = null;
 
-async function connectDB() {
+export async function connectDB(): Promise<Db | null> {
   if (database) return database;
   try {
     await client.connect();
@@ -21,7 +22,7 @@ async function connectDB() {
     connectError = null;
     console.log('MongoDB Connected Successfully!');
     return database;
-  } catch (error) {
+  } catch (error: any) {
     connectError = error;
     database = null;
     console.error('MongoDB Connection Error Details:', error.message);
@@ -30,16 +31,14 @@ async function connectDB() {
   }
 }
 
-function getDB() {
+export function getDB(): Db | null {
   return database;
 }
 
-function isDBReady() {
+export function isDBReady(): boolean {
   return Boolean(database);
 }
 
-function getConnectError() {
+export function getConnectError(): Error | null {
   return connectError;
 }
-
-module.exports = { connectDB, getDB, isDBReady, getConnectError };
