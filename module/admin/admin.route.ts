@@ -6,7 +6,8 @@ import {
   assignPickupRider,
   confirmReceive,
   shipParcel,
-  assignDeliveryRider
+  assignDeliveryRider,
+  deleteUser
 } from './admin.controller';
 import { verifyToken, verifyAdmin } from '../middleware/authMiddleware';
 
@@ -21,5 +22,6 @@ router.patch('/parcels/:id/assign-pickup', assignPickupRider);
 router.patch('/parcels/:id/confirm-receive', confirmReceive);
 router.patch('/parcels/:id/ship', shipParcel);
 router.patch('/parcels/:id/assign-delivery', assignDeliveryRider);
+router.delete('/users/:id', deleteUser);
 
 export const AdminRoutes = router;

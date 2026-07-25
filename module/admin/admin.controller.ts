@@ -8,7 +8,8 @@ import {
   assignPickupRiderService,
   confirmReceiveService,
   shipParcelService,
-  assignDeliveryRiderService
+  assignDeliveryRiderService,
+  deleteUserService
 } from './admin.services';
 
 export const getStats = catchAsync(async (req: Request, res: Response) => {
@@ -77,6 +78,16 @@ export const assignDeliveryRider = catchAsync(async (req: Request, res: Response
     statusCode: 200,
     success: true,
     message: 'Delivery rider assigned successfully',
+    data: result
+  });
+});
+
+export const deleteUser = catchAsync(async (req: Request, res: Response) => {
+  const result: any = await deleteUserService(req.params.id as string);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'User deleted successfully',
     data: result
   });
 });

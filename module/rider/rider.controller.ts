@@ -40,7 +40,7 @@ export const confirmPickup = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const deliverParcel = catchAsync(async (req: Request, res: Response) => {
-  const result: any = await deliverParcelService(req.params.id as string, req.body.tracking_no, req.user?.email);
+  const result: any = await deliverParcelService(req.params.id as string, req.body.tracking_no, req.user?.email, req.body.otp);
   sendResponse(res, {
     statusCode: 200,
     success: true,

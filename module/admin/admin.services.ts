@@ -14,13 +14,28 @@ export async function getStatsService() {
   if (!db) {
     return {
       totalUsers: memoryStore.users.length,
-      totalParcels: memoryStore.parcels.length
+      totalParcels: memoryStore.parcels.length,
+      activeRiders: memoryStore.users.filter((u: any) => u.role === 'rider' && u.riderStatus === 'approved').length,
+      revenue: memoryStore.parcels.reduce((acc: number, p: any) => acc + (Number(p.cost) || 0), 0)
     };
   }
 
   const totalUsers = await db.collection('users').countDocuments();
   const totalParcels = await db.collection('parcels').countDocuments();
-  return { totalUsers, totalParcels };
+  const activeRiders = await db.collection('users').countDocuments({ role: 'rider', riderStatus: 'approved' });
+  
+  const revenueAgg = await db.collection('parcels').aggregate([
+    {
+      $group: {
+        _id: null,
+        totalRevenue: { $sum: { $toDouble: "$cost" } }
+      }
+    }
+  ]).toArray();
+  
+  const revenue = revenueAgg.length > 0 ? revenueAgg[0].totalRevenue : 0;
+
+  return { totalUsers, totalParcels, activeRiders, revenue };
 }
 
 export async function updateRiderStatusService(id: string, status: string) {
@@ -200,4 +215,27 @@ export async function assignDeliveryRiderService(id: string, riderEmail: string)
     throw new AppError(404, 'Parcel not found');
   }
   return updateResult;
+}
+
+export async function deleteUserService(id: string) {
+  const db = getDB();
+
+  if (!db) {
+    const userIndex = memoryStore.users.findIndex((user: any) => user._id === id);
+    if (userIndex === -1) {
+      throw new AppError(404, 'User not found');
+    }
+    memoryStore.users.splice(userIndex, 1);
+    return { acknowledged: true, deletedCount: 1 };
+  }
+
+  if (!ObjectId.isValid(id)) throw new AppError(400, 'Invalid ID format');
+
+  const deleteResult = await db.collection('users').deleteOne({ _id: new ObjectId(id) });
+
+  if (deleteResult.deletedCount === 0) {
+    throw new AppError(404, 'User not found');
+  }
+
+  return deleteResult;
 }

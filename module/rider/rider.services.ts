@@ -82,7 +82,7 @@ export async function confirmPickupService(parcelId: string, trackingNo: string,
   }
 }
 
-export async function deliverParcelService(parcelId: string, trackingNo: string, riderEmail: string) {
+export async function deliverParcelService(parcelId: string, trackingNo: string, riderEmail: string, otp?: string) {
   const db = getDB();
   let parcel: any = null;
 
@@ -92,6 +92,9 @@ export async function deliverParcelService(parcelId: string, trackingNo: string,
     parcel = memoryStore.parcels[idx];
     
     if (parcel.trackingNo !== trackingNo) throw new AppError(400, 'Invalid Tracking Number');
+    if (parcel.paymentMethod === 'COD' && parcel.deliveryOtp && parcel.deliveryOtp !== otp) {
+      throw new AppError(400, 'Invalid OTP. Delivery cannot be completed.');
+    }
     
     memoryStore.parcels[idx].status = 'Delivered';
     
@@ -105,6 +108,9 @@ export async function deliverParcelService(parcelId: string, trackingNo: string,
     if (!parcel) throw new AppError(404, 'Parcel not found or not assigned for delivery');
 
     if (parcel.trackingNo !== trackingNo) throw new AppError(400, 'Invalid Tracking Number');
+    if (parcel.paymentMethod === 'COD' && parcel.deliveryOtp && parcel.deliveryOtp !== otp) {
+      throw new AppError(400, 'Invalid OTP. Delivery cannot be completed.');
+    }
 
     await db.collection('parcels').updateOne(
       { _id: new ObjectId(parcelId) },

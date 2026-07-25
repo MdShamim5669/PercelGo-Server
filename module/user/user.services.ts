@@ -50,13 +50,15 @@ export async function getUserProfileService(id: string) {
   const db = getDB();
 
   if (!db) {
-    const user = memoryStore.users.find((user: any) => user._id === id) || null;
+    const user = memoryStore.users.find((user: any) => user._id === id || user.email === id) || null;
     if (!user) throw new AppError(404, 'User not found');
     return user;
   }
 
-  if (!ObjectId.isValid(id)) throw new AppError(400, 'Invalid ID format');
-  const user = await db.collection('users').findOne({ _id: new ObjectId(id) });
+  const query = id.includes('@') ? { email: id } : { _id: new ObjectId(id) };
+  if (!id.includes('@') && !ObjectId.isValid(id)) throw new AppError(400, 'Invalid ID format');
+  
+  const user = await db.collection('users').findOne(query);
   if (!user) throw new AppError(404, 'User not found');
   return user;
 }
@@ -79,7 +81,7 @@ export async function updateUserProfileService(id: string, profileData: any) {
   const db = getDB();
 
   if (!db) {
-    const userIndex = memoryStore.users.findIndex((user: any) => user._id === id);
+    const userIndex = memoryStore.users.findIndex((user: any) => user._id === id || user.email === id);
     if (userIndex === -1) {
       throw new AppError(404, 'User not found');
     }
@@ -88,10 +90,14 @@ export async function updateUserProfileService(id: string, profileData: any) {
     return { acknowledged: true, modifiedCount: 1 };
   }
 
-  if (!ObjectId.isValid(id)) throw new AppError(400, 'Invalid ID format');
+  const query = id.includes('@') ? { email: id } : { _id: new ObjectId(id) };
+  if (!id.includes('@') && !ObjectId.isValid(id)) throw new AppError(400, 'Invalid ID format');
+
+  // Prevent email updates to maintain system integrity
+  delete profileData.email;
 
   const updateResult = await db.collection('users').updateOne(
-    { _id: new ObjectId(id) },
+    query,
     { $set: profileData },
     { upsert: false }
   );

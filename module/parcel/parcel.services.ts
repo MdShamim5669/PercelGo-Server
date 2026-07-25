@@ -18,6 +18,9 @@ function buildParcelRecord(parcelData: any) {
     ...parcelData,
     creation_date: new Date().toISOString(),
     status: parcelData.status || 'unpaid',
+    paymentMethod: parcelData.paymentMethod || 'Online',
+    paymentStatus: parcelData.paymentMethod === 'COD' ? 'cod-pending' : 'unpaid',
+    deliveryOtp: parcelData.paymentMethod === 'COD' ? Math.floor(1000 + Math.random() * 9000).toString() : null, // 4-digit OTP
     cost: calculateParcelCost(parcelData)
   };
 
