@@ -12,6 +12,8 @@ declare global {
   }
 }
 
+import jwt from 'jsonwebtoken';
+
 export const verifyToken = async (req: Request, res: Response, next: NextFunction) => {
   const token = req.headers.authorization?.split(' ')[1];
   
@@ -20,11 +22,11 @@ export const verifyToken = async (req: Request, res: Response, next: NextFunctio
   }
 
   try {
-    const decodedToken = await getAuth().verifyIdToken(token);
-    req.user = decodedToken; // Firebase token payload will have email, uid, etc.
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    req.user = decodedToken; // JWT payload will have email, uid, etc.
     next();
   } catch (error) {
-    console.error('Error verifying Firebase token:', error);
+    console.error('Error verifying custom JWT:', error);
     return res.status(403).json({ message: 'Invalid or expired token.' });
   }
 };

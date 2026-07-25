@@ -4,13 +4,15 @@ import {
   getUserProfile, 
   updateUserProfile, 
   registerUser, 
-  loginUser 
+  loginUser,
+  createToken
 } from './user.controller';
 import { validateRequest } from '../middleware/validateRequest';
 import { userRegisterSchema, userLoginSchema } from './user.validation';
 
 const router = Router();
 
+router.post('/jwt', createToken);
 router.post('/register', validateRequest(userRegisterSchema), registerUser);
 router.post('/login', validateRequest(userLoginSchema), loginUser);
 

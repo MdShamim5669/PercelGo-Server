@@ -8,6 +8,13 @@ import {
   registerUserService, 
   loginUserService 
 } from './user.services';
+import jwt from 'jsonwebtoken';
+
+export const createToken = catchAsync(async (req: Request, res: Response) => {
+  const user = req.body;
+  const token = jwt.sign(user, process.env.JWT_SECRET || 'secret', { expiresIn: '1h' });
+  res.send({ token });
+});
 
 export const getAllUsers = catchAsync(async (req: Request, res: Response) => {
   const role = req.query.role as string;
