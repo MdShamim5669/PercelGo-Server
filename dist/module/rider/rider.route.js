@@ -1,0 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.RiderRoutes = void 0;
+const express_1 = require("express");
+const rider_controller_1 = require("./rider.controller");
+const authMiddleware_1 = require("../middleware/authMiddleware");
+const router = (0, express_1.Router)();
+router.use(authMiddleware_1.verifyToken, authMiddleware_1.verifyRider);
+router.get('/parcels/pickup', rider_controller_1.getPickupParcels);
+router.get('/parcels/delivery', rider_controller_1.getDeliveryParcels);
+router.post('/parcels/:id/pickup', rider_controller_1.confirmPickup);
+router.post('/parcels/:id/deliver', rider_controller_1.deliverParcel);
+router.get('/earnings', rider_controller_1.getEarnings);
+exports.RiderRoutes = router;

@@ -61,6 +61,20 @@ export async function getUserProfileService(id: string) {
   return user;
 }
 
+export async function getUserRoleService(email: string) {
+  const db = getDB();
+
+  if (!db) {
+    const user = memoryStore.users.find((user: any) => user.email === email) || null;
+    if (!user) throw new AppError(404, 'User not found');
+    return { admin: user.role === 'admin', rider: user.role === 'rider' };
+  }
+
+  const user = await db.collection('users').findOne({ email });
+  if (!user) throw new AppError(404, 'User not found');
+  return { admin: user.role === 'admin', rider: user.role === 'rider' };
+}
+
 export async function updateUserProfileService(id: string, profileData: any) {
   const db = getDB();
 

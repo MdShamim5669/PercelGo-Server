@@ -3,7 +3,8 @@ import catchAsync from '../shared/catchAsync';
 import sendResponse from '../shared/sendResponse';
 import { 
   getAllUsersService,
-  getUserProfileService, 
+  getUserProfileService,
+  getUserRoleService,
   updateUserProfileService, 
   registerUserService, 
   loginUserService 
@@ -43,6 +44,28 @@ export const updateUserProfile = catchAsync(async (req: Request, res: Response) 
     statusCode: 200,
     success: true,
     message: 'User profile updated successfully',
+    data: result
+  });
+});
+
+export const getUserRole = catchAsync(async (req: Request, res: Response) => {
+  const email = req.params.email;
+  
+  // Security check: Only allow users to check their own role, or admins
+  if (req.user?.email !== email && req.user?.role !== 'admin') {
+    return sendResponse(res, {
+      statusCode: 403,
+      success: false,
+      message: 'Forbidden access',
+      data: null
+    });
+  }
+
+  const result: any = await getUserRoleService(email as string);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'User role retrieved successfully',
     data: result
   });
 });

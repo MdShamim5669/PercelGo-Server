@@ -1,0 +1,16 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.AdminRoutes = void 0;
+const express_1 = require("express");
+const admin_controller_1 = require("./admin.controller");
+const authMiddleware_1 = require("../middleware/authMiddleware");
+const router = (0, express_1.Router)();
+router.use(authMiddleware_1.verifyToken, authMiddleware_1.verifyAdmin);
+router.get('/stats', admin_controller_1.getStats);
+router.patch('/riders/:id/status', admin_controller_1.updateRiderStatus);
+router.patch('/users/:id/role', admin_controller_1.updateUserRole);
+router.patch('/parcels/:id/assign-pickup', admin_controller_1.assignPickupRider);
+router.patch('/parcels/:id/confirm-receive', admin_controller_1.confirmReceive);
+router.patch('/parcels/:id/ship', admin_controller_1.shipParcel);
+router.patch('/parcels/:id/assign-delivery', admin_controller_1.assignDeliveryRider);
+exports.AdminRoutes = router;

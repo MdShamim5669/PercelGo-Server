@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { 
   getAllUsers,
-  getUserProfile, 
+  getUserProfile,
+  getUserRole,
   updateUserProfile, 
   registerUser, 
   loginUser,
@@ -9,6 +10,7 @@ import {
 } from './user.controller';
 import { validateRequest } from '../middleware/validateRequest';
 import { userRegisterSchema, userLoginSchema } from './user.validation';
+import { verifyToken, verifyAdmin } from '../middleware/authMiddleware';
 
 const router = Router();
 
@@ -16,8 +18,13 @@ router.post('/jwt', createToken);
 router.post('/register', validateRequest(userRegisterSchema), registerUser);
 router.post('/login', validateRequest(userLoginSchema), loginUser);
 
-router.get('/', getAllUsers);
+// Protect sensitive admin endpoint
+router.get('/', verifyToken, verifyAdmin, getAllUsers);
+
+// Secure role endpoint for users to verify their own roles
+router.get('/role/:email', verifyToken, getUserRole);
+
 router.get('/:id', getUserProfile);
-router.put('/:id', updateUserProfile); // '/:id' is standard REST convention over '/:id/update'
+router.put('/:id', updateUserProfile);
 
 export const UserRoutes = router;

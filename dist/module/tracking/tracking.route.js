@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.TrackingRoutes = void 0;
+const express_1 = require("express");
+const tracking_controller_1 = require("./tracking.controller");
+const authMiddleware_1 = require("../middleware/authMiddleware");
+const router = (0, express_1.Router)();
+router.get('/', tracking_controller_1.getTracking);
+router.get('/:trackingId', authMiddleware_1.verifyToken, tracking_controller_1.getTrackingLogs);
+exports.TrackingRoutes = router;
