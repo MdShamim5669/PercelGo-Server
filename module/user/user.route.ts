@@ -11,6 +11,8 @@ import {
 import { validateRequest } from '../middleware/validateRequest';
 import { userRegisterSchema, userLoginSchema } from './user.validation';
 import { verifyToken, verifyAdmin } from '../middleware/authMiddleware';
+import catchAsync from '../shared/catchAsync';
+import { getDB } from '../../config/db';
 
 const router = Router();
 
@@ -23,6 +25,16 @@ router.get('/', verifyToken, verifyAdmin, getAllUsers);
 
 // Secure role endpoint for users to verify their own roles
 router.get('/role/:email', verifyToken, getUserRole);
+
+router.patch('/role/:email', verifyToken, catchAsync(async (req, res) => {
+  const email = req.params.email;
+  const { role } = req.body;
+  const db = getDB();
+  if (!db) return res.status(500).json({ success: false, message: 'DB not connected' });
+  
+  await db.collection('users').updateOne({ email }, { $set: { role } });
+  res.json({ success: true, message: `Role updated to ${role}` });
+}));
 
 router.get('/:id', getUserProfile);
 router.put('/:id', updateUserProfile);

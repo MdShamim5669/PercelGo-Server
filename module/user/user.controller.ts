@@ -11,8 +11,24 @@ import {
 } from './user.services';
 import jwt from 'jsonwebtoken';
 
+import { getDB } from '../../config/db';
+
 export const createToken = catchAsync(async (req: Request, res: Response) => {
-  const user = req.body;
+  const user = req.body; // expects { email, name }
+  const db = getDB();
+
+  if (db && user.email) {
+    const existing = await db.collection('users').findOne({ email: user.email });
+    if (!existing) {
+      await db.collection('users').insertOne({
+        name: user.name || 'User',
+        email: user.email,
+        role: 'user', // Default role
+        createdAt: new Date().toISOString()
+      });
+    }
+  }
+
   const token = jwt.sign(user, process.env.JWT_SECRET || 'secret', { expiresIn: '1h' });
   res.send({ token });
 });
