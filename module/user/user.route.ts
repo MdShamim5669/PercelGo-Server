@@ -26,14 +26,22 @@ router.get('/', verifyToken, verifyAdmin, getAllUsers);
 // Secure role endpoint for users to verify their own roles
 router.get('/role/:email', verifyToken, getUserRole);
 
-router.patch('/role/:email', verifyToken, catchAsync(async (req, res) => {
+router.patch('/apply-rider/:email', verifyToken, catchAsync(async (req, res) => {
   const email = req.params.email;
-  const { role } = req.body;
+  const applicationData = req.body;
   const db = getDB();
   if (!db) return res.status(500).json({ success: false, message: 'DB not connected' });
   
-  await db.collection('users').updateOne({ email }, { $set: { role } });
-  res.json({ success: true, message: `Role updated to ${role}` });
+  await db.collection('users').updateOne(
+    { email }, 
+    { 
+      $set: { 
+        riderStatus: 'pending',
+        riderApplication: applicationData
+      } 
+    }
+  );
+  res.json({ success: true, message: 'Rider application submitted successfully' });
 }));
 
 router.get('/:id', getUserProfile);

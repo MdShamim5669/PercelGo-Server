@@ -63,9 +63,18 @@ export async function updateUserRoleService(id: string, role: string) {
 
   if (!ObjectId.isValid(id)) throw new AppError(400, 'Invalid ID format');
 
+  const updateDoc: any = { $set: { role } };
+  
+  if (role === 'rider') {
+    updateDoc.$set.riderStatus = 'approved';
+  } else if (role !== 'rider') {
+    // If they are demoted from rider, maybe clear the status
+    updateDoc.$unset = { riderStatus: "" };
+  }
+
   const updateResult = await db.collection('users').updateOne(
     { _id: new ObjectId(id) },
-    { $set: { role } }
+    updateDoc
   );
 
   if (updateResult.matchedCount === 0) {
