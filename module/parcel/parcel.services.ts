@@ -98,6 +98,24 @@ export async function getParcelsService(email?: string) {
   return db.collection('parcels').find(query).toArray();
 }
 
+export async function getRiderParcelsService(riderEmail: string) {
+  const db = getDB();
+
+  if (!db) {
+    return memoryStore.parcels.filter((parcel: any) => 
+      parcel.pickupRider === riderEmail || parcel.deliveryRider === riderEmail
+    );
+  }
+
+  const query = {
+    $or: [
+      { pickupRider: riderEmail },
+      { deliveryRider: riderEmail }
+    ]
+  };
+  return db.collection('parcels').find(query).toArray();
+}
+
 export async function getParcelByIdService(id: string) {
   const db = getDB();
 

@@ -4,6 +4,7 @@ import sendResponse from '../shared/sendResponse';
 import {
   createParcelService,
   getParcelsService,
+  getRiderParcelsService,
   getParcelByIdService,
   createPaymentIntentService,
   payParcelService,
@@ -29,6 +30,17 @@ export const getParcels = catchAsync(async (req: Request, res: Response) => {
     statusCode: 200,
     success: true,
     message: 'Parcels retrieved successfully',
+    data: result
+  });
+});
+
+// Get Rider Parcels
+export const getRiderParcels = catchAsync(async (req: Request, res: Response) => {
+  const result: any = await getRiderParcelsService(req.params.email as string);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Rider parcels retrieved successfully',
     data: result
   });
 });

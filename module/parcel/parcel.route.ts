@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   createParcel,
   getParcels,
+  getRiderParcels,
   getParcelById,
   payParcel,
   createPaymentIntent,
@@ -15,6 +16,7 @@ const router = Router();
 
 router.post('/', validateRequest(createParcelSchema), createParcel);
 router.get('/', getParcels);
+router.get('/rider/:email', getRiderParcels);
 
 // Specific routes must come before parameter routes like /:id
 router.get('/payments', getPayments);
