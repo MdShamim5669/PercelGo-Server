@@ -78,7 +78,7 @@ async function confirmPickupService(parcelId, trackingNo, riderEmail) {
         return { success: true, message: `Parcel picked up successfully. Status is now ${newStatus}.`, earning: 20 };
     }
 }
-async function deliverParcelService(parcelId, trackingNo, riderEmail) {
+async function deliverParcelService(parcelId, trackingNo, riderEmail, otp) {
     const db = (0, db_1.getDB)();
     let parcel = null;
     if (!db) {
@@ -88,6 +88,9 @@ async function deliverParcelService(parcelId, trackingNo, riderEmail) {
         parcel = parcel_services_1.memoryStore.parcels[idx];
         if (parcel.trackingNo !== trackingNo)
             throw new AppError_1.default(400, 'Invalid Tracking Number');
+        if (parcel.paymentMethod === 'COD' && parcel.deliveryOtp && parcel.deliveryOtp !== otp) {
+            throw new AppError_1.default(400, 'Invalid OTP. Delivery cannot be completed.');
+        }
         parcel_services_1.memoryStore.parcels[idx].status = 'Delivered';
         parcel_services_1.memoryStore.tracking.push({ parcelId, status: 'Delivered', message: 'Parcel successfully delivered to customer.', timestamp: new Date().toISOString() });
         calculateEarning(riderEmail, parcelId, db);
@@ -101,6 +104,9 @@ async function deliverParcelService(parcelId, trackingNo, riderEmail) {
             throw new AppError_1.default(404, 'Parcel not found or not assigned for delivery');
         if (parcel.trackingNo !== trackingNo)
             throw new AppError_1.default(400, 'Invalid Tracking Number');
+        if (parcel.paymentMethod === 'COD' && parcel.deliveryOtp && parcel.deliveryOtp !== otp) {
+            throw new AppError_1.default(400, 'Invalid OTP. Delivery cannot be completed.');
+        }
         await db.collection('parcels').updateOne({ _id: new mongodb_1.ObjectId(parcelId) }, { $set: { status: 'Delivered' } });
         await db.collection('tracking').insertOne({ parcelId, status: 'Delivered', message: 'Parcel successfully delivered to customer.', timestamp: new Date().toISOString() });
         await calculateEarning(riderEmail, parcelId, db);

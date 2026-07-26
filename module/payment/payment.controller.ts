@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import catchAsync from '../utils/catchAsync';
-import sendResponse from '../utils/sendResponse';
+import catchAsync from '../shared/catchAsync';
+import sendResponse from '../shared/sendResponse';
 import {
   initPaymentService,
   paymentSuccessService,
@@ -19,21 +19,21 @@ export const initPayment = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
-  const { tranId } = req.params;
+  const tranId = req.query.transactionId as string;
   await paymentSuccessService(tranId);
   // Redirect to frontend success page
   res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard/payment/success?transactionId=${tranId}`);
 });
 
 export const paymentFail = catchAsync(async (req: Request, res: Response) => {
-  const { tranId } = req.params;
+  const tranId = req.query.transactionId as string;
   await paymentFailService(tranId);
   // Redirect to frontend fail page
   res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard/payment/fail`);
 });
 
 export const paymentCancel = catchAsync(async (req: Request, res: Response) => {
-  const { tranId } = req.params;
+  const tranId = req.query.transactionId as string;
   await paymentCancelService(tranId);
   // Redirect to frontend fail page
   res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard/payment/fail`);

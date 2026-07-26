@@ -35,7 +35,7 @@ exports.confirmPickup = (0, catchAsync_1.default)(async (req, res) => {
     });
 });
 exports.deliverParcel = (0, catchAsync_1.default)(async (req, res) => {
-    const result = await (0, rider_services_1.deliverParcelService)(req.params.id, req.body.tracking_no, req.user?.email);
+    const result = await (0, rider_services_1.deliverParcelService)(req.params.id, req.body.tracking_no, req.user?.email, req.body.otp);
     (0, sendResponse_1.default)(res, {
         statusCode: 200,
         success: true,

@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.assignDeliveryRider = exports.shipParcel = exports.confirmReceive = exports.assignPickupRider = exports.updateUserRole = exports.updateRiderStatus = exports.getStats = void 0;
+exports.deleteUser = exports.assignDeliveryRider = exports.shipParcel = exports.confirmReceive = exports.assignPickupRider = exports.updateUserRole = exports.updateRiderStatus = exports.getStats = void 0;
 const catchAsync_1 = __importDefault(require("../shared/catchAsync"));
 const sendResponse_1 = __importDefault(require("../shared/sendResponse"));
 const admin_services_1 = require("./admin.services");
@@ -67,6 +67,15 @@ exports.assignDeliveryRider = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: 200,
         success: true,
         message: 'Delivery rider assigned successfully',
+        data: result
+    });
+});
+exports.deleteUser = (0, catchAsync_1.default)(async (req, res) => {
+    const result = await (0, admin_services_1.deleteUserService)(req.params.id);
+    (0, sendResponse_1.default)(res, {
+        statusCode: 200,
+        success: true,
+        message: 'User deleted successfully',
         data: result
     });
 });

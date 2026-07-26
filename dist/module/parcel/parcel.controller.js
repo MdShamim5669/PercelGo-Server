@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateParcelStatus = exports.getPayments = exports.payParcel = exports.createPaymentIntent = exports.getParcelById = exports.getParcels = exports.createParcel = void 0;
+exports.updateParcelStatus = exports.getPayments = exports.payParcel = exports.createPaymentIntent = exports.getParcelById = exports.getRiderParcels = exports.getParcels = exports.createParcel = void 0;
 const catchAsync_1 = __importDefault(require("../shared/catchAsync"));
 const sendResponse_1 = __importDefault(require("../shared/sendResponse"));
 const parcel_services_1 = require("./parcel.services");
@@ -24,6 +24,16 @@ exports.getParcels = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: 200,
         success: true,
         message: 'Parcels retrieved successfully',
+        data: result
+    });
+});
+// Get Rider Parcels
+exports.getRiderParcels = (0, catchAsync_1.default)(async (req, res) => {
+    const result = await (0, parcel_services_1.getRiderParcelsService)(req.params.email);
+    (0, sendResponse_1.default)(res, {
+        statusCode: 200,
+        success: true,
+        message: 'Rider parcels retrieved successfully',
         data: result
     });
 });

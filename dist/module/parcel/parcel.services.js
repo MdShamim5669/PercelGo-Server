@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.memoryStore = void 0;
 exports.createParcelService = createParcelService;
 exports.getParcelsService = getParcelsService;
+exports.getRiderParcelsService = getRiderParcelsService;
 exports.getParcelByIdService = getParcelByIdService;
 exports.createPaymentIntentService = createPaymentIntentService;
 exports.payParcelService = payParcelService;
@@ -28,6 +29,9 @@ function buildParcelRecord(parcelData) {
         ...parcelData,
         creation_date: new Date().toISOString(),
         status: parcelData.status || 'unpaid',
+        paymentMethod: parcelData.paymentMethod || 'Online',
+        paymentStatus: parcelData.paymentMethod === 'COD' ? 'cod-pending' : 'unpaid',
+        deliveryOtp: parcelData.paymentMethod === 'COD' ? Math.floor(1000 + Math.random() * 9000).toString() : null, // 4-digit OTP
         cost: calculateParcelCost(parcelData)
     };
     parcel._id = parcel._id || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -90,6 +94,19 @@ async function getParcelsService(email) {
             : exports.memoryStore.parcels;
     }
     const query = email ? { senderEmail: email } : {};
+    return db.collection('parcels').find(query).toArray();
+}
+async function getRiderParcelsService(riderEmail) {
+    const db = (0, db_1.getDB)();
+    if (!db) {
+        return exports.memoryStore.parcels.filter((parcel) => parcel.pickupRider === riderEmail || parcel.deliveryRider === riderEmail);
+    }
+    const query = {
+        $or: [
+            { pickupRider: riderEmail },
+            { deliveryRider: riderEmail }
+        ]
+    };
     return db.collection('parcels').find(query).toArray();
 }
 async function getParcelByIdService(id) {

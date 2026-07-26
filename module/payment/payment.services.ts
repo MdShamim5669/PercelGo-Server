@@ -1,3 +1,4 @@
+// @ts-ignore
 import SSLCommerzPayment from 'sslcommerz-lts';
 import { getDB } from '../../config/db';
 import { ObjectId } from 'mongodb';

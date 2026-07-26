@@ -1,20 +1,23 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.verifyRider = exports.verifyAdmin = exports.verifyToken = void 0;
-const auth_1 = require("firebase-admin/auth");
 const db_1 = require("../../config/db");
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const verifyToken = async (req, res, next) => {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) {
         return res.status(401).json({ message: 'Access Denied: No token provided.' });
     }
     try {
-        const decodedToken = await (0, auth_1.getAuth)().verifyIdToken(token);
-        req.user = decodedToken; // Firebase token payload will have email, uid, etc.
+        const decodedToken = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET || 'secret');
+        req.user = decodedToken; // JWT payload will have email, uid, etc.
         next();
     }
     catch (error) {
-        console.error('Error verifying Firebase token:', error);
+        console.error('Error verifying custom JWT:', error);
         return res.status(403).json({ message: 'Invalid or expired token.' });
     }
 };

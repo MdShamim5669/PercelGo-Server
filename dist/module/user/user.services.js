@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getAllUsersService = getAllUsersService;
 exports.getUserProfileService = getUserProfileService;
+exports.getUserRoleService = getUserRoleService;
 exports.updateUserProfileService = updateUserProfileService;
 exports.registerUserService = registerUserService;
 exports.loginUserService = loginUserService;
@@ -53,31 +54,48 @@ async function getAllUsersService(role, searchText = null, limit = 0) {
 async function getUserProfileService(id) {
     const db = (0, db_1.getDB)();
     if (!db) {
-        const user = memoryStore.users.find((user) => user._id === id) || null;
+        const user = memoryStore.users.find((user) => user._id === id || user.email === id) || null;
         if (!user)
             throw new AppError_1.default(404, 'User not found');
         return user;
     }
-    if (!mongodb_1.ObjectId.isValid(id))
+    const query = id.includes('@') ? { email: id } : { _id: new mongodb_1.ObjectId(id) };
+    if (!id.includes('@') && !mongodb_1.ObjectId.isValid(id))
         throw new AppError_1.default(400, 'Invalid ID format');
-    const user = await db.collection('users').findOne({ _id: new mongodb_1.ObjectId(id) });
+    const user = await db.collection('users').findOne(query);
     if (!user)
         throw new AppError_1.default(404, 'User not found');
     return user;
 }
+async function getUserRoleService(email) {
+    const db = (0, db_1.getDB)();
+    if (!db) {
+        const user = memoryStore.users.find((user) => user.email === email) || null;
+        if (!user)
+            throw new AppError_1.default(404, 'User not found');
+        return { admin: user.role === 'admin', rider: user.role === 'rider' };
+    }
+    const user = await db.collection('users').findOne({ email });
+    if (!user)
+        throw new AppError_1.default(404, 'User not found');
+    return { admin: user.role === 'admin', rider: user.role === 'rider' };
+}
 async function updateUserProfileService(id, profileData) {
     const db = (0, db_1.getDB)();
     if (!db) {
-        const userIndex = memoryStore.users.findIndex((user) => user._id === id);
+        const userIndex = memoryStore.users.findIndex((user) => user._id === id || user.email === id);
         if (userIndex === -1) {
             throw new AppError_1.default(404, 'User not found');
         }
         memoryStore.users[userIndex] = { ...memoryStore.users[userIndex], ...profileData };
         return { acknowledged: true, modifiedCount: 1 };
     }
-    if (!mongodb_1.ObjectId.isValid(id))
+    const query = id.includes('@') ? { email: id } : { _id: new mongodb_1.ObjectId(id) };
+    if (!id.includes('@') && !mongodb_1.ObjectId.isValid(id))
         throw new AppError_1.default(400, 'Invalid ID format');
-    const updateResult = await db.collection('users').updateOne({ _id: new mongodb_1.ObjectId(id) }, { $set: profileData }, { upsert: false });
+    // Prevent email updates to maintain system integrity
+    delete profileData.email;
+    const updateResult = await db.collection('users').updateOne(query, { $set: profileData }, { upsert: false });
     if (updateResult.matchedCount === 0) {
         throw new AppError_1.default(404, 'User not found');
     }

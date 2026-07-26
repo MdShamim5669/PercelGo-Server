@@ -13,4 +13,5 @@ router.patch('/parcels/:id/assign-pickup', admin_controller_1.assignPickupRider)
 router.patch('/parcels/:id/confirm-receive', admin_controller_1.confirmReceive);
 router.patch('/parcels/:id/ship', admin_controller_1.shipParcel);
 router.patch('/parcels/:id/assign-delivery', admin_controller_1.assignDeliveryRider);
+router.delete('/users/:id', admin_controller_1.deleteUser);
 exports.AdminRoutes = router;
